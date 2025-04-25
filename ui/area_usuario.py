@@ -49,18 +49,24 @@ class AreaUsuario(QDialog):
         usuario = db.query(Usuario).filter(Usuario.nombre_usuario == self.nombre_usuario).first()
 
         if usuario:
-            # Obtener los planes del usuario
-            planes = db.query(PlanEntrenamiento).filter(PlanEntrenamiento.usuario_id == usuario.id).order_by(PlanEntrenamiento.semana).all()
+            # Orden natural de los días de la semana
+            orden_dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
+            # Obtener todos los planes del usuario ordenados por semana
+            planes = db.query(PlanEntrenamiento).filter(
+                PlanEntrenamiento.usuario_id == usuario.id
+            ).order_by(PlanEntrenamiento.semana).all()
 
             if not planes:
                 QMessageBox.warning(self, "Error", "No se ha encontrado el plan de entrenamiento.")
                 return
 
+            # Ordenar manualmente por semana y día
+            planes.sort(key=lambda p: (p.semana, orden_dias.index(p.dia)))
 
             self.table_widget.setColumnCount(5)
-            self.table_widget.setHorizontalHeaderLabels(["Semana", "Día", "Disciplina", "Descripción", "Distancia (km)"])
-
-            # Llenar la tabla con los datos del plan
+            self.table_widget.setHorizontalHeaderLabels(
+                ["Semana", "Día", "Disciplina", "Descripción", "Distancia (km)"])
             self.table_widget.setRowCount(len(planes))
 
             for i, plan in enumerate(planes):
