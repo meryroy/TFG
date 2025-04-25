@@ -10,8 +10,17 @@ class AreaUsuario(QDialog):
         self.setWindowTitle("Área de Usuario")
         self.setGeometry(100, 100, 800, 600)
 
-        self.layout = QVBoxLayout()
+        # Cargar la hoja de estilo CSS
+        try:
+            with open('css/style.css', 'r') as file:
+                stylesheet = file.read()
+                print("CSS cargado correctamente.")
+                self.setStyleSheet("")
+                self.setStyleSheet(stylesheet)
+        except Exception as e:
+            print(f"Error al cargar el CSS: {e}")
 
+        self.layout = QVBoxLayout()
 
         self.bienvenida_label = QLabel(f"¡Bienvenido, {self.nombre_usuario}!", self)
         self.layout.addWidget(self.bienvenida_label)
@@ -41,15 +50,15 @@ class AreaUsuario(QDialog):
 
         if usuario:
             # Obtener los planes del usuario
-            planes = db.query(PlanEntrenamiento).filter(PlanEntrenamiento.usuario_id == usuario.id).order_by(PlanEntrenamiento.semana, PlanEntrenamiento.dia).all()
+            planes = db.query(PlanEntrenamiento).filter(PlanEntrenamiento.usuario_id == usuario.id).order_by(PlanEntrenamiento.semana).all()
 
             if not planes:
                 QMessageBox.warning(self, "Error", "No se ha encontrado el plan de entrenamiento.")
                 return
 
-            # Establecer las cabeceras de la tabla
-            self.table_widget.setColumnCount(6)
-            self.table_widget.setHorizontalHeaderLabels(["Semana", "Día", "Disciplina", "Descripción", "Duración (min)", "Distancia (km)"])
+
+            self.table_widget.setColumnCount(5)
+            self.table_widget.setHorizontalHeaderLabels(["Semana", "Día", "Disciplina", "Descripción", "Distancia (km)"])
 
             # Llenar la tabla con los datos del plan
             self.table_widget.setRowCount(len(planes))
@@ -59,8 +68,7 @@ class AreaUsuario(QDialog):
                 self.table_widget.setItem(i, 1, QTableWidgetItem(plan.dia))
                 self.table_widget.setItem(i, 2, QTableWidgetItem(plan.disciplina))
                 self.table_widget.setItem(i, 3, QTableWidgetItem(plan.descripcion))
-                self.table_widget.setItem(i, 4, QTableWidgetItem(str(plan.duracion_min)))
-                self.table_widget.setItem(i, 5, QTableWidgetItem(str(plan.distancia_km)))
+                self.table_widget.setItem(i, 4, QTableWidgetItem(str(plan.distancia_km)))
 
         else:
             QMessageBox.warning(self, "Error", "No se ha encontrado el usuario.")

@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtWidgets import (
     QDialog, QFormLayout, QLineEdit, QComboBox, QSpinBox,
     QVBoxLayout, QPushButton, QMessageBox, QLabel
@@ -5,7 +7,8 @@ from PySide6.QtWidgets import (
 from db.database import SessionLocal
 from db.modelos import Usuario
 from utils.generador_plan import generar_plan
-from datetime import datetime
+
+
 
 class Formulario(QDialog):
     def __init__(self):
@@ -13,6 +16,14 @@ class Formulario(QDialog):
 
         self.setWindowTitle("Formulario de Registro de Usuario")
         self.setGeometry(100, 100, 400, 400)
+
+        # Cargar hoja de estilos
+        ruta_css = os.path.join(os.path.dirname(__file__), '..', 'css', 'style.css')
+        try:
+            with open(ruta_css, 'r') as file:
+                self.setStyleSheet(file.read())
+        except Exception as e:
+            print(f"No se pudo cargar el CSS: {e}")
 
         self.layout = QVBoxLayout()
         self.form_layout = QFormLayout()
@@ -116,4 +127,14 @@ class Formulario(QDialog):
         msg.setIcon(QMessageBox.Information)
         msg.setWindowTitle("Éxito")
         msg.setText(mensaje)
-        msg.exec()
+        msg.setStandardButtons(QMessageBox.Ok)
+
+        if msg.exec() == QMessageBox.Ok:
+            self.close()
+            self.abrir_inicio()
+
+    def abrir_inicio(self):
+        from ui.inicio import PantallaInicio
+        self.ventana_inicio = PantallaInicio()
+        self.ventana_inicio.show()
+

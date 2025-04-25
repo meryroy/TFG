@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton, QMessageBox, QLabel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -12,8 +14,15 @@ class LoginForm(QDialog):
         super().__init__()
         self.setWindowTitle("Inicio de sesión")
 
+        # Cargar hoja de estilos
+        ruta_css = os.path.join(os.path.dirname(__file__), '..', 'css', 'style.css')
+        try:
+            with open(ruta_css, 'r') as file:
+                self.setStyleSheet(file.read())
+        except Exception as e:
+            print(f"No se pudo cargar el CSS: {e}")
 
-        self.engine = create_engine('sqlite:///data/entrenamientos.db')
+        self.engine = create_engine('sqlite:///data/entrenamiento.db')
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
@@ -45,13 +54,10 @@ class LoginForm(QDialog):
         user = self.session.query(Usuario).filter(Usuario.nombre_usuario == usuario).first()
 
         # Verificar si se encontró el usuario y si la contraseña es correcta
-        if user and user.contrasena == contraseña:  # Asegúrate de tener la contraseña cifrada correctamente
+        if user and user.contrasena == contraseña:
             QMessageBox.information(self, "Éxito", "Inicio de sesión exitoso")
             self.nombre_usuario = user.nombre_usuario
-            self.accept()  # Aceptar el login y cerrar el formulario
+            self.accept()
         else:
             QMessageBox.warning(self, "Error", "Nombre de usuario o contraseña incorrectos")
-    def show_area_usuario(self):
-        # Este método lo utilizas para mostrar el área de usuario después del login
-        self.area_usuario = AreaUsuario()
-        self.area_usuario.exec()
+

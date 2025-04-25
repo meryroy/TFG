@@ -28,7 +28,6 @@ class PlanEntrenamiento(Base):
     dia = Column(String)
     disciplina = Column(String)
     descripcion = Column(String)
-    duracion_min = Column(Integer)
     distancia_km = Column(Float)
     fecha = Column(Date)
 

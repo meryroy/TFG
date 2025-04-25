@@ -1,0 +1,55 @@
+/* Estilo general de la ventana */
+QWidget {
+    background-color: #ffffff;
+    color: #000000;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 14px;
+}
+
+/* Botones */
+QPushButton {
+    background-color: #b40000;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+}
+
+QPushButton:hover {
+    background-color: #d00000;
+}
+
+
+
+/* Etiquetas */
+QLabel {
+    font-size: 15px;
+}
+
+/* Tabla */
+QTableWidget {
+    border: 1px solid #cccccc;
+    gridline-color: #dddddd;
+    selection-background-color: #b40000;
+    selection-color: white;
+    alternate-background-color: #f9f9f9;
+}
+
+/* Cabecera de tabla (sin usar 'section') */
+QHeaderView {
+    background-color: #b40000;
+    color: white;
+    font-weight: bold;
+}
+
+/* Entrada de texto */
+QLineEdit, QComboBox, QDateEdit, QSpinBox {
+    border: 1px solid #aaaaaa;
+    border-radius: 6px;
+    padding: 5px;
+}
+
+/* Cuadro de mensaje */
+QMessageBox {
+    background-color: #ffffff;
+}
