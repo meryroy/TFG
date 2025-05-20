@@ -1,13 +1,15 @@
 import os
+from datetime import datetime, timedelta
 
+import bcrypt
 from PySide6.QtWidgets import (
     QDialog, QFormLayout, QLineEdit, QComboBox, QSpinBox,
-    QVBoxLayout, QPushButton, QMessageBox, QLabel
+    QVBoxLayout, QPushButton, QMessageBox, QSizePolicy
 )
+
 from db.database import SessionLocal
 from db.modelos import Usuario
 from utils.generador_plan import generar_plan
-
 
 
 class Formulario(QDialog):
@@ -15,9 +17,8 @@ class Formulario(QDialog):
         super().__init__()
 
         self.setWindowTitle("Formulario de Registro de Usuario")
-        self.setGeometry(100, 100, 400, 400)
+        self.setMinimumSize(400, 400)
 
-        # Cargar hoja de estilos
         ruta_css = os.path.join(os.path.dirname(__file__), '..', 'css', 'style.css')
         try:
             with open(ruta_css, 'r') as file:
@@ -25,10 +26,9 @@ class Formulario(QDialog):
         except Exception as e:
             print(f"No se pudo cargar el CSS: {e}")
 
-        self.layout = QVBoxLayout()
+        self.main_layout = QVBoxLayout(self)
         self.form_layout = QFormLayout()
 
-        # Datos del usuario
         self.nombre_input = QLineEdit()
         self.form_layout.addRow("Nombre:", self.nombre_input)
 
@@ -51,7 +51,6 @@ class Formulario(QDialog):
         self.categoria_input.addItems(["Super Sprint", "Sprint", "Estándar"])
         self.form_layout.addRow("Categoría:", self.categoria_input)
 
-        # Nivel general (bajo, medio, alto) para todas las disciplinas
         self.nivel_input = QComboBox()
         self.nivel_input.addItems(["Bajo", "Medio", "Alto"])
         self.form_layout.addRow("Nivel general de habilidad:", self.nivel_input)
@@ -60,17 +59,16 @@ class Formulario(QDialog):
         self.frecuencia_input.setRange(3, 7)
         self.form_layout.addRow("Frecuencia semanal:", self.frecuencia_input)
 
-        # Duración del plan
         self.duracion_plan_input = QComboBox()
         self.duracion_plan_input.addItems(["24 semanas", "12 semanas", "8 semanas", "6 semanas"])
         self.form_layout.addRow("Duración del plan:", self.duracion_plan_input)
 
         self.crear_plan_button = QPushButton("Crear Plan")
+        self.crear_plan_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.crear_plan_button.clicked.connect(self.crear_plan)
 
-        self.layout.addLayout(self.form_layout)
-        self.layout.addWidget(self.crear_plan_button)
-        self.setLayout(self.layout)
+        self.main_layout.addLayout(self.form_layout)
+        self.main_layout.addWidget(self.crear_plan_button)
 
     def crear_plan(self):
         db = SessionLocal()
@@ -81,38 +79,41 @@ class Formulario(QDialog):
         contraseña = self.contraseña_input.text()
         genero = self.genero_input.currentText().lower()
         categoria = self.categoria_input.currentText().lower().replace(" ", "_")
-        nivel = self.nivel_input.currentText().lower()  # Nivel general
+        nivel = self.nivel_input.currentText().lower()
         frecuencia = self.frecuencia_input.value()
+        duracion_plan = int(self.duracion_plan_input.currentText().split()[0])
 
-        # Duración seleccionada del plan
-        duracion_plan = self.duracion_plan_input.currentText().split()[0]
-        duracion_plan = int(duracion_plan)
-
-        # Creamos el usuario en la base de datos
         if db.query(Usuario).filter(Usuario.nombre_usuario == nombre_usuario).first():
             self.mostrar_error("Ese nombre de usuario ya está registrado. Elige otro.")
+            db.close()
             return
+
+        contraseña_hash = bcrypt.hashpw(contraseña.encode('utf-8'), bcrypt.gensalt())
+
+        fecha_objetivo = datetime(2025, 6, 9).date()
+        semanas_total = timedelta(weeks=duracion_plan - 1)
+        fecha_inicio_plan = fecha_objetivo - semanas_total
 
         nuevo_usuario = Usuario(
             nombre=nombre,
             apellido=apellido,
             nombre_usuario=nombre_usuario,
-            contrasena=contraseña,
+            contrasena=contraseña_hash,
             genero=genero,
             categoria=categoria,
-            nivel=nivel,  # Solo nivel general
+            nivel=nivel,
             frecuencia_semanal=frecuencia,
-
+            fecha_inicio_plan=fecha_inicio_plan,
+            duracion_plan=duracion_plan
         )
 
         db.add(nuevo_usuario)
         db.commit()
+        db.refresh(nuevo_usuario)  # <--- Muy importante para tener el ID asignado
 
-        # Llamamos a la función generar_plan para generar el plan de entrenamiento con la duración seleccionada
-        generar_plan(nuevo_usuario.id, duracion_plan)
+        generar_plan(nuevo_usuario, duracion_plan, db)  # <--- Pasamos el usuario y sesión
 
         db.close()
-
         self.mostrar_exito(f"¡Usuario {nombre_usuario} registrado correctamente y plan creado!")
 
     def mostrar_error(self, mensaje):
@@ -137,4 +138,3 @@ class Formulario(QDialog):
         from ui.inicio import PantallaInicio
         self.ventana_inicio = PantallaInicio()
         self.ventana_inicio.show()
-

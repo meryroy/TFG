@@ -1,18 +1,23 @@
 import os
+import bcrypt
 
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton, QMessageBox, QLabel
+from PySide6.QtWidgets import (
+    QDialog, QVBoxLayout, QLineEdit, QPushButton,
+    QMessageBox, QLabel, QSizePolicy
+)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from db.database import SessionLocal
 from db.modelos import Usuario
-from ui.area_usuario import AreaUsuario
 
 
 class LoginForm(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Inicio de sesión")
+        self.setMinimumSize(300, 200)
+        self.resize(400, 250)
 
         # Cargar hoja de estilos
         ruta_css = os.path.join(os.path.dirname(__file__), '..', 'css', 'style.css')
@@ -29,35 +34,38 @@ class LoginForm(QDialog):
         layout = QVBoxLayout()
 
         self.label_usuario = QLabel("Nombre de usuario:")
-        self.input_usuario = QLineEdit()
+        self.label_usuario.setWordWrap(True)
         layout.addWidget(self.label_usuario)
+
+        self.input_usuario = QLineEdit()
+        self.input_usuario.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout.addWidget(self.input_usuario)
 
         self.label_contraseña = QLabel("Contraseña:")
+        self.label_contraseña.setWordWrap(True)
+        layout.addWidget(self.label_contraseña)
+
         self.input_contraseña = QLineEdit()
         self.input_contraseña.setEchoMode(QLineEdit.Password)
-        layout.addWidget(self.label_contraseña)
+        self.input_contraseña.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout.addWidget(self.input_contraseña)
 
         self.boton_iniciar = QPushButton("Iniciar sesión")
+        self.boton_iniciar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.boton_iniciar.clicked.connect(self.validar_login)
         layout.addWidget(self.boton_iniciar)
 
         self.setLayout(layout)
 
     def validar_login(self):
-        # Obtener el nombre de usuario y la contraseña del formulario
         usuario = self.input_usuario.text()
         contraseña = self.input_contraseña.text()
 
-        # Buscar el usuario en la base de datos
         user = self.session.query(Usuario).filter(Usuario.nombre_usuario == usuario).first()
 
-        # Verificar si se encontró el usuario y si la contraseña es correcta
-        if user and user.contrasena == contraseña:
+        if user and bcrypt.checkpw(contraseña.encode('utf-8'), user.contrasena):
             QMessageBox.information(self, "Éxito", "Inicio de sesión exitoso")
             self.nombre_usuario = user.nombre_usuario
             self.accept()
         else:
             QMessageBox.warning(self, "Error", "Nombre de usuario o contraseña incorrectos")
-

@@ -1,6 +1,6 @@
-from db.database import SessionLocal
-from db.modelos import PlanEntrenamiento, Usuario
 from datetime import datetime, timedelta
+
+from db.modelos import PlanEntrenamiento
 
 def generar_descripcion(disciplina, semana, nivel):
     if disciplina == 'correr':
@@ -22,14 +22,8 @@ def generar_descripcion(disciplina, semana, nivel):
             return "Nado continuo moderado"
     return "Sesión estándar"
 
-def generar_plan(usuario_id: int, duracion_plan: int):
-    db = SessionLocal()
-
+def generar_plan(usuario, duracion_plan, db):
     try:
-        usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
-        if not usuario:
-            raise Exception(f"No se encontró al usuario con ID {usuario_id}")
-
         categoria = usuario.categoria
         nivel = usuario.nivel
         frecuencia = usuario.frecuencia_semanal
@@ -41,121 +35,129 @@ def generar_plan(usuario_id: int, duracion_plan: int):
             'estandar': {'natacion': 1.5, 'ciclismo': 40, 'correr': 10}
         }
 
-        sesiones_por_dia = {
-            3: {'natacion': 1, 'ciclismo': 1, 'correr': 1},
-            4: {'natacion': 2, 'ciclismo': 1, 'correr': 2},
-            5: {'natacion': 2, 'ciclismo': 2, 'correr': 2},
-            6: {'natacion': 2, 'ciclismo': 2, 'correr': 3},
-            7: {'natacion': 3, 'ciclismo': 3, 'correr': 3}
-        }
-
-        if categoria not in distancias_base or frecuencia not in sesiones_por_dia:
-            raise Exception("Categoría o frecuencia inválida.")
+        if categoria not in distancias_base:
+            raise Exception("Categoría inválida.")
 
         distancias = distancias_base[categoria]
-        sesiones = sesiones_por_dia[frecuencia]
         factor_genero = 0.9 if genero == 'femenino' else 1.0
 
-        # Definir el incremento progresivo según la duración del plan
         if duracion_plan == 6:
-            factor_incremento = 0.10  # 10% de incremento semanal
+            factor_incremento = 0.10
         elif duracion_plan == 8:
-            factor_incremento = 0.08  # 8% de incremento semanal
+            factor_incremento = 0.08
         elif duracion_plan == 12:
-            factor_incremento = 0.06  # 6% de incremento semanal
+            factor_incremento = 0.06
         elif duracion_plan == 24:
-            factor_incremento = 0.04  # 4% de incremento semanal
+            factor_incremento = 0.04
         else:
             factor_incremento = 0.05
 
-        def ajustar_carga(disciplina, nivel, frecuencia, semana):
-            # Cálculo de la carga base
+        def ajustar_carga(disciplina, nivel, semana):
             base = distancias[disciplina] * factor_genero
-            if nivel == 'alto':
-                base *= 1.5
-            elif nivel == 'medio':
-                base *= 1.3
+
+            if frecuencia in [3, 4]:
+                if nivel == 'alto':
+                    base *= 1.9
+                elif nivel == 'medio':
+                    base *= 1.7
+                else:
+                    base *= 1.4
             else:
-                base *= 1.1
+                if nivel == 'alto':
+                    base *= 1.5
+                elif nivel == 'medio':
+                    base *= 1.3
+                else:
+                    base *= 1.1
 
-            # Factor de ajuste por frecuencia (ajustar la carga de acuerdo con la frecuencia de entrenamientos)
-            if frecuencia == 3:
-                base *= 1.0
-            elif frecuencia == 4:
-                base *= 0.9
-            elif frecuencia == 5:
-                base *= 0.75
-            elif frecuencia == 6:
-                base *= 0.6
-            else:
-                base *= 0.5
+            carga = base * (1 + factor_incremento * (semana - 1))
+            if semana == duracion_plan:
+                carga *= 0.7  # aplicar tapering
+            return carga
 
-            # Cálculo de la carga progresiva semanal
-            carga_progresiva = base * (1 + factor_incremento * (semana - 1))  # Aumento progresivo semanal
-            return carga_progresiva
-
-        # Definir los días de descanso según la frecuencia
-        dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-        dias_descanso_por_frecuencia = {
-            3: ["Martes", "Miércoles", "Viernes", "Sábado"],
-            4: ["Lunes", "Miércoles", "Viernes"],
-            5: ["Martes", "Jueves"],
-            6: ["Viernes"],
-            7: []
+        plan_dias_por_frecuencia = {
+            3: {
+                "Lunes": "correr",
+                "Martes": "Descanso",
+                "Miércoles": "natacion",
+                "Jueves": "Descanso",
+                "Viernes": "Descanso",
+                "Sábado": "ciclismo",
+                "Domingo": "Descanso"
+            },
+            4: {
+                "Lunes": "correr",
+                "Martes": "Descanso",
+                "Miércoles": "natacion",
+                "Jueves": "correr",
+                "Viernes": "Descanso",
+                "Sábado": "ciclismo",
+                "Domingo": "Descanso"
+            },
+            5: {
+                "Lunes": "correr",
+                "Martes": "ciclismo",
+                "Miércoles": "Descanso",
+                "Jueves": "correr",
+                "Viernes": "natacion",
+                "Sábado": "ciclismo",
+                "Domingo": "Descanso"
+            },
+            6: {
+                "Lunes": "correr",
+                "Martes": "ciclismo",
+                "Miércoles": "natacion",
+                "Jueves": "Descanso",
+                "Viernes": "correr",
+                "Sábado": "ciclismo",
+                "Domingo": "natacion"
+            },
+            7: {
+                "Lunes": "correr",
+                "Martes": "ciclismo",
+                "Miércoles": "natacion",
+                "Jueves": "correr",
+                "Viernes": "correr",
+                "Sábado": "ciclismo",
+                "Domingo": "natacion"
+            }
         }
-        dias_descanso = dias_descanso_por_frecuencia.get(frecuencia, [])
 
-        # Calcular cuántas sesiones por disciplina por semana
+        if frecuencia not in plan_dias_por_frecuencia:
+            raise Exception(f"Frecuencia semanal inválida: {frecuencia}")
+
+        plan_dias = plan_dias_por_frecuencia[frecuencia]
+        dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
+        fecha_inicio_plan = usuario.fecha_inicio_plan
+
         for semana in range(1, duracion_plan + 1):
-            indice_dia = 0
+            for dia in dias_semana:
+                disciplina = plan_dias[dia]
 
-
-            # Generar lista de días hábiles para entrenar en esta semana
-            dias_entrenamiento = [d for d in dias_semana if d not in dias_descanso]
-
-            for disciplina in ['natacion', 'ciclismo', 'correr']:
-                carga = ajustar_carga(disciplina, nivel, frecuencia, semana)
-                if semana == duracion_plan:
-                    carga *= 0.7  # Tapering
-
-                for _ in range(sesiones[disciplina]):
-                    dia_nombre = dias_entrenamiento[indice_dia % len(dias_entrenamiento)]
-                    fecha = datetime.now().date() + timedelta(weeks=semana - 1, days=dias_semana.index(dia_nombre))
+                if disciplina == "Descanso":
+                    descripcion = "Descanso o movilidad suave"
+                    distancia_km = 0
+                else:
+                    carga = ajustar_carga(disciplina, nivel, semana)
                     descripcion = generar_descripcion(disciplina, semana, nivel)
+                    distancia_km = round(carga, 2)
 
-                    plan = PlanEntrenamiento(
-                        usuario_id=usuario.id,
-                        semana=semana,
-                        dia=dia_nombre,
-                        disciplina=disciplina,
-                        descripcion=descripcion,
-                        distancia_km=round(carga, 2),
-                        fecha=fecha
-                    )
-                    db.add(plan)
-                    indice_dia += 1
+                fecha_entrenamiento = fecha_inicio_plan + timedelta(weeks=semana - 1)
 
-            # Añadir explícitamente los días de descanso si hay
-            for dia_descanso in dias_descanso:
-                descanso_fecha = datetime.now().date() + timedelta(weeks=semana - 1, days=dias_semana.index(dia_descanso))
-                plan_descanso = PlanEntrenamiento(
+                plan = PlanEntrenamiento(
                     usuario_id=usuario.id,
+                    fecha=fecha_entrenamiento,
                     semana=semana,
-                    dia=dia_descanso,
-                    disciplina="Descanso",
-                    descripcion="Descanso o movilidad suave",
-                    distancia_km=0,
-                    fecha=descanso_fecha
+                    dia=dia,
+                    disciplina=disciplina,
+                    distancia_km=distancia_km,
+                    descripcion=descripcion
                 )
-                db.add(plan_descanso)
+
+                db.add(plan)
 
         db.commit()
 
     except Exception as e:
-        print(f"Error al generar el plan: {e}")
-        db.rollback()
-
-    finally:
-        db.close()
-
-    print("Plan de entrenamiento generado con éxito.")
+        print(f"Error al generar plan: {e}")

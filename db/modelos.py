@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, Time
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, Time, LargeBinary
 from sqlalchemy.orm import relationship
 from db.database import Base
 
@@ -9,12 +9,13 @@ class Usuario(Base):
     nombre = Column(String, nullable=False)
     apellido = Column(String, nullable=False)
     nombre_usuario = Column(String, unique=True, nullable=False)
-    contrasena = Column(String)
+    contrasena = Column(LargeBinary, nullable=False)
     genero = Column(String)
     categoria = Column(String)
     nivel = Column(String)
     frecuencia_semanal = Column(Integer)
-
+    fecha_inicio_plan = Column(Date)
+    duracion_plan = Column(Integer, nullable=True)
 
     planes = relationship("PlanEntrenamiento", back_populates="usuario")
     entrenamientos = relationship("Entrenamiento", back_populates="usuario")

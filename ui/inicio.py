@@ -1,4 +1,7 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QLabel, QMessageBox, QDialog
+from PySide6.QtWidgets import (
+    QWidget, QPushButton, QVBoxLayout, QLabel, QMessageBox,
+    QDialog, QSizePolicy
+)
 from ui.area_usuario import AreaUsuario
 from ui.inicio_sesion import LoginForm
 from ui.formulario import Formulario
@@ -8,7 +11,8 @@ class PantallaInicio(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Gestión Entrenamiento - Triatlón Madrid")
-        self.setGeometry(100, 100, 400, 200)
+        self.setMinimumSize(350, 250)
+        self.resize(500, 300)
 
         # Cargar hoja de estilos
         ruta_css = os.path.join(os.path.dirname(__file__), '..', 'css', 'style.css')
@@ -21,13 +25,17 @@ class PantallaInicio(QWidget):
         layout = QVBoxLayout()
 
         self.label_bienvenida = QLabel("Bienvenido al Gestor de Entrenamiento")
+        self.label_bienvenida.setWordWrap(True)
+        self.label_bienvenida.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         layout.addWidget(self.label_bienvenida)
 
         self.boton_crear = QPushButton("Crear plan de entrenamiento")
+        self.boton_crear.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.boton_crear.clicked.connect(self.crear_plan)
         layout.addWidget(self.boton_crear)
 
         self.boton_existente = QPushButton("Ya tengo plan de entrenamiento")
+        self.boton_existente.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.boton_existente.clicked.connect(self.acceder_area_usuario)
         layout.addWidget(self.boton_existente)
 
@@ -45,4 +53,3 @@ class PantallaInicio(QWidget):
             self.area = AreaUsuario(nombre_usuario)
             self.area.show()
             self.close()
-
