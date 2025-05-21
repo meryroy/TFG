@@ -1,15 +1,12 @@
 import os
-from datetime import datetime, timedelta
 
-import bcrypt
 from PySide6.QtWidgets import (
     QDialog, QFormLayout, QLineEdit, QComboBox, QSpinBox,
     QVBoxLayout, QPushButton, QMessageBox, QSizePolicy
 )
 
-from db.database import SessionLocal
-from db.modelos import Usuario
-from utils.generador_plan import generar_plan
+from controllers.registro_controller import RegistroController
+from utils.ui_helpers import cargar_css
 
 
 class Formulario(QDialog):
@@ -19,12 +16,8 @@ class Formulario(QDialog):
         self.setWindowTitle("Formulario de Registro de Usuario")
         self.setMinimumSize(400, 400)
 
-        ruta_css = os.path.join(os.path.dirname(__file__), '..', 'css', 'style.css')
-        try:
-            with open(ruta_css, 'r') as file:
-                self.setStyleSheet(file.read())
-        except Exception as e:
-            print(f"No se pudo cargar el CSS: {e}")
+        # Cargar CSS usando la utilidad
+        cargar_css(self)
 
         self.main_layout = QVBoxLayout(self)
         self.form_layout = QFormLayout()
@@ -71,50 +64,26 @@ class Formulario(QDialog):
         self.main_layout.addWidget(self.crear_plan_button)
 
     def crear_plan(self):
-        db = SessionLocal()
+        datos = {
+            "nombre": self.nombre_input.text().strip(),
+            "apellido": self.apellido_input.text().strip(),
+            "nombre_usuario": self.nombre_usuario_input.text().strip(),
+            "contraseña": self.contraseña_input.text(),
+            "genero": self.genero_input.currentText().lower(),
+            "categoria": self.categoria_input.currentText().lower().replace(" ", "_"),
+            "nivel": self.nivel_input.currentText().lower(),
+            "frecuencia": self.frecuencia_input.value(),
+            "duracion_plan": int(self.duracion_plan_input.currentText().split()[0])
+        }
 
-        nombre = self.nombre_input.text().strip()
-        apellido = self.apellido_input.text().strip()
-        nombre_usuario = self.nombre_usuario_input.text().strip()
-        contraseña = self.contraseña_input.text()
-        genero = self.genero_input.currentText().lower()
-        categoria = self.categoria_input.currentText().lower().replace(" ", "_")
-        nivel = self.nivel_input.currentText().lower()
-        frecuencia = self.frecuencia_input.value()
-        duracion_plan = int(self.duracion_plan_input.currentText().split()[0])
+        resultado = RegistroController.registrar_usuario(datos)
 
-        if db.query(Usuario).filter(Usuario.nombre_usuario == nombre_usuario).first():
+        if resultado == "usuario_existente":
             self.mostrar_error("Ese nombre de usuario ya está registrado. Elige otro.")
-            db.close()
-            return
-
-        contraseña_hash = bcrypt.hashpw(contraseña.encode('utf-8'), bcrypt.gensalt())
-
-        fecha_objetivo = datetime(2025, 6, 9).date()
-        semanas_total = timedelta(weeks=duracion_plan - 1)
-        fecha_inicio_plan = fecha_objetivo - semanas_total
-
-        nuevo_usuario = Usuario(
-            nombre=nombre,
-            apellido=apellido,
-            nombre_usuario=nombre_usuario,
-            contrasena=contraseña_hash,
-            genero=genero,
-            categoria=categoria,
-            nivel=nivel,
-            frecuencia_semanal=frecuencia,
-            fecha_inicio_plan=fecha_inicio_plan,
-            duracion_plan=duracion_plan
-        )
-
-        db.add(nuevo_usuario)
-        db.commit()
-        db.refresh(nuevo_usuario)  # <--- Muy importante para tener el ID asignado
-
-        generar_plan(nuevo_usuario, duracion_plan, db)  # <--- Pasamos el usuario y sesión
-
-        db.close()
-        self.mostrar_exito(f"¡Usuario {nombre_usuario} registrado correctamente y plan creado!")
+        elif resultado == "registro_exitoso":
+            self.mostrar_exito(f"¡Usuario {datos['nombre_usuario']} registrado correctamente y plan creado!")
+        else:
+            self.mostrar_error("Ha ocurrido un error inesperado.")
 
     def mostrar_error(self, mensaje):
         msg = QMessageBox(self)

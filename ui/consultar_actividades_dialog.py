@@ -3,9 +3,14 @@ from PySide6.QtWidgets import (
     QSizePolicy, QScrollArea, QWidget
 )
 from PySide6.QtCore import QDate
+from datetime import datetime
+
 from db.database import SessionLocal
 from db.modelos import PlanEntrenamiento, Entrenamiento
-from datetime import datetime, timedelta
+from utils.fecha_utils import mapear_planes_a_fechas
+from utils.ui_helpers import cargar_css
+
+DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
 class ConsultarActividadesDialog(QDialog):
     def __init__(self, usuario_id):
@@ -15,15 +20,9 @@ class ConsultarActividadesDialog(QDialog):
         self.setMinimumSize(500, 400)
         self.resize(700, 500)
 
-        # Cargar hoja de estilo
-        try:
-            with open('css/style.css', 'r') as file:
-                self.setStyleSheet(file.read())
-        except Exception as e:
-            print(f"Error al cargar el CSS: {e}")
-            QMessageBox.warning(self, "Error de Estilo", f"No se pudo cargar el archivo CSS.\n{e}")
 
-        # Scroll area
+        cargar_css(self)
+
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         container = QWidget()
@@ -42,43 +41,29 @@ class ConsultarActividadesDialog(QDialog):
 
         scroll.setWidget(container)
 
-        # Layout principal
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(scroll)
 
-        # Cargar datos
-        self.planes = []
         self.plan_por_fecha = {}
         self.cargar_planes()
 
     def cargar_planes(self):
         db = SessionLocal()
         try:
-            self.planes = db.query(PlanEntrenamiento).filter(
+            planes = db.query(PlanEntrenamiento).filter(
                 PlanEntrenamiento.usuario_id == self.usuario_id
             ).all()
 
-            if not self.planes:
+            if not planes:
                 self.texto_info.setText("No hay plan de entrenamiento generado para este usuario.")
                 return
 
-            duracion_plan = max(plan.semana for plan in self.planes)
             fecha_ultima_semana = datetime(2025, 6, 9).date()
-            fecha_inicio_plan = fecha_ultima_semana - timedelta(weeks=duracion_plan - 1)
-            dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+            self.plan_por_fecha, fecha_inicio = mapear_planes_a_fechas(planes, fecha_ultima_semana)
 
-            self.plan_por_fecha = {}
-            for plan in self.planes:
-                if plan.dia not in dias_semana:
-                    continue
-                dia_index = dias_semana.index(plan.dia)
-                fecha_mapeada = fecha_inicio_plan + timedelta(weeks=plan.semana - 1, days=dia_index)
-                self.plan_por_fecha[fecha_mapeada] = plan
-
-            # Rango del calendario
-            self.calendario.setMinimumDate(QDate(fecha_inicio_plan.year, fecha_inicio_plan.month, fecha_inicio_plan.day))
+            self.calendario.setMinimumDate(QDate(fecha_inicio.year, fecha_inicio.month, fecha_inicio.day))
             self.calendario.setMaximumDate(QDate(fecha_ultima_semana.year, fecha_ultima_semana.month, fecha_ultima_semana.day + 6))
-            self.calendario.setSelectedDate(QDate(fecha_inicio_plan.year, fecha_inicio_plan.month, fecha_inicio_plan.day))
+            self.calendario.setSelectedDate(QDate(fecha_inicio.year, fecha_inicio.month, fecha_inicio.day))
 
             self.mostrar_info_seleccionada()
 

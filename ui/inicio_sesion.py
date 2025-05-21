@@ -1,16 +1,10 @@
 import os
-import bcrypt
-
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QLineEdit, QPushButton,
     QMessageBox, QLabel, QSizePolicy
 )
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from db.database import SessionLocal
-from db.modelos import Usuario
-
+from controllers.auth_controller import AuthController
+from utils.ui_helpers import cargar_css
 
 class LoginForm(QDialog):
     def __init__(self):
@@ -19,17 +13,8 @@ class LoginForm(QDialog):
         self.setMinimumSize(300, 200)
         self.resize(400, 250)
 
-        # Cargar hoja de estilos
-        ruta_css = os.path.join(os.path.dirname(__file__), '..', 'css', 'style.css')
-        try:
-            with open(ruta_css, 'r') as file:
-                self.setStyleSheet(file.read())
-        except Exception as e:
-            print(f"No se pudo cargar el CSS: {e}")
-
-        self.engine = create_engine('sqlite:///data/entrenamiento.db')
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+        # Cargar CSS usando la utilidad
+        cargar_css(self)
 
         layout = QVBoxLayout()
 
@@ -61,11 +46,9 @@ class LoginForm(QDialog):
         usuario = self.input_usuario.text()
         contraseña = self.input_contraseña.text()
 
-        user = self.session.query(Usuario).filter(Usuario.nombre_usuario == usuario).first()
-
-        if user and bcrypt.checkpw(contraseña.encode('utf-8'), user.contrasena):
+        if AuthController.validar_usuario(usuario, contraseña):
             QMessageBox.information(self, "Éxito", "Inicio de sesión exitoso")
-            self.nombre_usuario = user.nombre_usuario
+            self.nombre_usuario = usuario
             self.accept()
         else:
             QMessageBox.warning(self, "Error", "Nombre de usuario o contraseña incorrectos")

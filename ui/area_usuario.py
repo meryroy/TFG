@@ -2,12 +2,13 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QPushButton, QLabel, QMessageBox,
     QTableWidget, QTableWidgetItem, QSizePolicy, QScrollArea, QWidget
 )
-from db.database import SessionLocal
-from db.modelos import Usuario, PlanEntrenamiento
+from controllers.usuario_controller import UsuarioController
+from utils.ui_helpers import cargar_css
 from ui.registrar_actividad_dialog import RegistroActividadDialog
 from ui.consultar_actividades_dialog import ConsultarActividadesDialog
 from ui.progreso_semanal_dialog import ProgresoSemanalDialog
 from ui.progreso_general_dialog import ProgresoGeneralDialog
+
 
 class AreaUsuario(QDialog):
     def __init__(self, nombre_usuario):
@@ -18,13 +19,7 @@ class AreaUsuario(QDialog):
         self.setMinimumSize(600, 500)
         self.resize(900, 600)
 
-        # Cargar CSS
-        try:
-            with open('css/style.css', 'r') as file:
-                self.setStyleSheet(file.read())
-        except Exception as e:
-            print(f"Error al cargar el CSS: {e}")
-            QMessageBox.warning(self, "Error de Estilo", f"No se pudo cargar el archivo CSS.\n{e}")
+        cargar_css(self)
 
         # Scrollable layout
         scroll_area = QScrollArea()
@@ -72,42 +67,36 @@ class AreaUsuario(QDialog):
         main_layout.addWidget(scroll_area)
 
     def consultar_plan(self):
-        orden_dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-        with SessionLocal() as db:
-            usuario = db.query(Usuario).filter(Usuario.nombre_usuario == self.nombre_usuario).first()
-            if usuario:
-                planes = db.query(PlanEntrenamiento).filter(
-                    PlanEntrenamiento.usuario_id == usuario.id
-                ).order_by(PlanEntrenamiento.semana).all()
+        usuario = UsuarioController.obtener_usuario_por_nombre(self.nombre_usuario)
+        if not usuario:
+            QMessageBox.warning(self, "Error", "No se ha encontrado el usuario.")
+            return
 
-                if not planes:
-                    QMessageBox.warning(self, "Error", "No se ha encontrado el plan de entrenamiento.")
-                    return
+        planes = UsuarioController.obtener_planes_entrenamiento(usuario.id)
+        if not planes:
+            QMessageBox.warning(self, "Error", "No se ha encontrado el plan de entrenamiento.")
+            return
 
-                planes.sort(key=lambda p: (p.semana, orden_dias.index(p.dia)))
-                self.table_widget.clearContents()
-                self.table_widget.setColumnCount(5)
-                self.table_widget.setHorizontalHeaderLabels(
-                    ["Semana", "Día", "Disciplina", "Descripción", "Distancia (km)"]
-                )
-                self.table_widget.setRowCount(len(planes))
+        self.table_widget.clearContents()
+        self.table_widget.setColumnCount(5)
+        self.table_widget.setHorizontalHeaderLabels(
+            ["Semana", "Día", "Disciplina", "Descripción", "Distancia (km)"]
+        )
+        self.table_widget.setRowCount(len(planes))
 
-                for i, plan in enumerate(planes):
-                    self.table_widget.setItem(i, 0, QTableWidgetItem(str(plan.semana)))
-                    self.table_widget.setItem(i, 1, QTableWidgetItem(plan.dia))
-                    self.table_widget.setItem(i, 2, QTableWidgetItem(plan.disciplina))
-                    self.table_widget.setItem(i, 3, QTableWidgetItem(plan.descripcion))
-                    self.table_widget.setItem(i, 4, QTableWidgetItem(str(plan.distancia_km)))
-            else:
-                QMessageBox.warning(self, "Error", "No se ha encontrado el usuario.")
+        for i, plan in enumerate(planes):
+            self.table_widget.setItem(i, 0, QTableWidgetItem(str(plan.semana)))
+            self.table_widget.setItem(i, 1, QTableWidgetItem(plan.dia))
+            self.table_widget.setItem(i, 2, QTableWidgetItem(plan.disciplina))
+            self.table_widget.setItem(i, 3, QTableWidgetItem(plan.descripcion))
+            self.table_widget.setItem(i, 4, QTableWidgetItem(str(plan.distancia_km)))
 
     def registrar_actividad(self):
         dialogo = RegistroActividadDialog(self.nombre_usuario)
         dialogo.exec()
 
     def consultar_actividades(self):
-        with SessionLocal() as db:
-            usuario = db.query(Usuario).filter(Usuario.nombre_usuario == self.nombre_usuario).first()
+        usuario = UsuarioController.obtener_usuario_por_nombre(self.nombre_usuario)
         if usuario:
             dialog = ConsultarActividadesDialog(usuario.id)
             dialog.exec()
@@ -115,8 +104,7 @@ class AreaUsuario(QDialog):
             QMessageBox.warning(self, "Error", "No se encontró el usuario para consultar actividades.")
 
     def comprobar_progreso_semanal(self):
-        with SessionLocal() as db:
-            usuario = db.query(Usuario).filter_by(nombre_usuario=self.nombre_usuario).first()
+        usuario = UsuarioController.obtener_usuario_por_nombre(self.nombre_usuario)
         if usuario:
             dialog = ProgresoSemanalDialog(usuario.id)
             dialog.exec()

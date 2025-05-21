@@ -1,11 +1,12 @@
 from PySide6.QtWidgets import (
-    QWidget, QPushButton, QVBoxLayout, QLabel, QMessageBox,
-    QDialog, QSizePolicy
+    QWidget, QPushButton, QVBoxLayout, QLabel, QSizePolicy, QDialog
 )
 from ui.area_usuario import AreaUsuario
 from ui.inicio_sesion import LoginForm
 from ui.formulario import Formulario
 import os
+from utils.ui_helpers import cargar_css
+
 
 class PantallaInicio(QWidget):
     def __init__(self):
@@ -14,13 +15,8 @@ class PantallaInicio(QWidget):
         self.setMinimumSize(350, 250)
         self.resize(500, 300)
 
-        # Cargar hoja de estilos
-        ruta_css = os.path.join(os.path.dirname(__file__), '..', 'css', 'style.css')
-        try:
-            with open(ruta_css, 'r') as file:
-                self.setStyleSheet(file.read())
-        except Exception as e:
-            print(f"No se pudo cargar el CSS: {e}")
+
+        cargar_css(self)
 
         layout = QVBoxLayout()
 
