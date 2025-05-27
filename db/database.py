@@ -1,12 +1,18 @@
 # db/database.py
+import os
+import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Crear el motor SQLite (se guarda en archivo local)
-engine = create_engine("sqlite:///data/entrenamiento.db", echo=False)
+def get_base_dir():
+    if getattr(sys, 'frozen', False):  # Detecta si es .exe
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
 
-# Base declarativa para modelos
+BASE_DIR = get_base_dir()
+DB_PATH = os.path.join(BASE_DIR, "data", "entrenamiento.db")  # Ruta final
+
+engine = create_engine(f"sqlite:///{DB_PATH}", echo=False)
+
 Base = declarative_base()
-
-# Crear sesión
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
