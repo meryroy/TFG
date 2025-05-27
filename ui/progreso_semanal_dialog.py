@@ -3,7 +3,7 @@ import os
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QComboBox, QSizePolicy, QPushButton, QFileDialog, QMessageBox
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from controllers.graficos_controller import cargar_semanas, obtener_datos_progreso_semanal
+from controllers.graficos_controller import GraficosController
 from utils.ui_helpers import cargar_css
 from utils.imagen_utils import guardar_figura_como_imagen
 
@@ -44,7 +44,7 @@ class ProgresoSemanalDialog(QDialog):
         self.ax = self.canvas.figure.add_subplot(111)
 
         # Cargar semanas con el controlador
-        self.semanas_disponibles = cargar_semanas(self.usuario_id)
+        self.semanas_disponibles = GraficosController.cargar_semanas(self.usuario_id)
         for semana in self.semanas_disponibles:
             self.semana_selector.addItem(f"Semana {semana}", semana)
 
@@ -59,7 +59,7 @@ class ProgresoSemanalDialog(QDialog):
 
         semana_actual = self.semanas_disponibles[semana_index]
 
-        datos = obtener_datos_progreso_semanal(self.usuario_id, self.semanas_disponibles, semana_actual)
+        datos = GraficosController.obtener_datos_progreso_semanal(self.usuario_id, self.semanas_disponibles, semana_actual)
 
         self.ax.clear()
         x = range(len(datos['dias']))

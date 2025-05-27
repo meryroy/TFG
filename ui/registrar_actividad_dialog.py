@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QPushButton, QDateEdit, QTimeEdit, QTextEdit, QMessageBox, QSizePolicy
 )
 from PySide6.QtCore import QDate, QTime
-from controllers.registro_actividad_controller import guardar_actividad_controller
+from controllers.registro_actividad_controller import RegistroActividadController
 from utils.ui_helpers import cargar_css
 
 class RegistroActividadDialog(QDialog):
@@ -60,4 +60,4 @@ class RegistroActividadDialog(QDialog):
             "ventana": self,
         }
 
-        guardar_actividad_controller(datos)
+        RegistroActividadController.guardar_actividad(datos)

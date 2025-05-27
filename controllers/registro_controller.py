@@ -2,7 +2,7 @@ import bcrypt
 from datetime import datetime, timedelta
 from db.database import SessionLocal
 from db.modelos import Usuario
-from controllers.plan_controller import generar_plan
+from controllers.plan_controller import PlanController
 
 class RegistroController:
     @staticmethod
@@ -33,6 +33,6 @@ class RegistroController:
             db.add(nuevo_usuario)
             db.commit()
             db.refresh(nuevo_usuario)
-            generar_plan(nuevo_usuario, datos["duracion_plan"], db)
+            PlanController.generar_plan(nuevo_usuario, datos["duracion_plan"], db)
 
             return "registro_exitoso"

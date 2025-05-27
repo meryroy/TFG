@@ -2,7 +2,7 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QComboBox, QSizePolicy, QPushButton, QFileDialog, QMessageBox
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from controllers.graficos_controller import obtener_usuario_y_semanas, obtener_datos_progreso_general
+from controllers.graficos_controller import GraficosController
 from utils.ui_helpers import cargar_css
 from utils.imagen_utils import guardar_figura_como_imagen
 
@@ -32,7 +32,7 @@ class ProgresoGeneralDialog(QDialog):
         self.layout.addWidget(self.canvas)
 
         # Obtener usuario y semanas con el controlador
-        resultado = obtener_usuario_y_semanas(nombre_usuario)
+        resultado = GraficosController.obtener_usuario_y_semanas(nombre_usuario)
         self.usuario = resultado['usuario']
         self.lista_semanas = resultado['semanas']
 
@@ -47,7 +47,7 @@ class ProgresoGeneralDialog(QDialog):
         disciplina = self.combo_disciplina.currentText().lower()
         usuario_id = self.usuario.id
 
-        datos = obtener_datos_progreso_general(usuario_id, disciplina, self.duracion)
+        datos = GraficosController.obtener_datos_progreso_general(usuario_id, disciplina, self.duracion)
 
         self.figure.clear()
         ax = self.figure.add_subplot(111)
